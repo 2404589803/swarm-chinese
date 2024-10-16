@@ -200,7 +200,7 @@ Hi John, how can I assist you today?
 
 - Swarm `Agent`s can call python functions directly.
 - Function should usually return a `str` (values will be attempted to be cast as a `str`).
-- If a function returns an `Agent`, execution will be transfered to that `Agent`.
+- If a function returns an `Agent`, execution will be transferred to that `Agent`.
 - If a function defines a `context_variables` parameter, it will be populated by the `context_variables` passed into `client.run()`.
 
 ```python
@@ -211,7 +211,7 @@ def greet(context_variables, language):
    return "Done"
 
 agent = Agent(
-   functions=[print_hello]
+   functions=[greet]
 )
 
 client.run(
@@ -332,7 +332,7 @@ Uses the same events as [Chat Completions API streaming](https://platform.openai
 
 Two new event types have been added:
 
-- `{"delim":"start"}` and `{"delim":"start"}`, to signal each time an `Agent` handles a single message (response or function call). This helps identify switches between `Agent`s.
+- `{"delim":"start"}` and `{"delim":"end"}`, to signal each time an `Agent` handles a single message (response or function call). This helps identify switches between `Agent`s.
 - `{"response": Response}` will return a `Response` object at the end of a stream with the aggregated (complete) response, for convenience.
 
 # Evaluations
