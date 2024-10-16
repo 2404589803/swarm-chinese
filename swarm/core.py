@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import List, Callable, Union
 
 # Package/library imports
-from openai import OpenAI
+from zhipuai import ZhipuAI  # 修改为 ZhipuAI
 
 
 # Local imports
@@ -24,9 +24,9 @@ __CTX_VARS_NAME__ = "context_variables"
 
 
 class Swarm:
-    def __init__(self, client=None):
+    def __init__(self, client=None, api_key=None):  # 添加 api_key 参数
         if not client:
-            client = OpenAI()
+            client = ZhipuAI(api_key=api_key)  # 传递 api_key
         self.client = client
 
     def get_chat_completion(
@@ -37,6 +37,8 @@ class Swarm:
         model_override: str,
         stream: bool,
         debug: bool,
+        models: dict = None,  # 添加多个模型定义参数
+        selected_model: str = None,  # 添加选择的模型参数
     ) -> ChatCompletionMessage:
         context_variables = defaultdict(str, context_variables)
         instructions = (
@@ -56,17 +58,14 @@ class Swarm:
                 params["required"].remove(__CTX_VARS_NAME__)
 
         create_params = {
-            "model": model_override or agent.model,
+            "model": selected_model or (model_override or agent.model),  # 使用选择的模型
             "messages": messages,
             "tools": tools or None,
             "tool_choice": agent.tool_choice,
             "stream": stream,
         }
 
-        if tools:
-            create_params["parallel_tool_calls"] = agent.parallel_tool_calls
-
-        return self.client.chat.completions.create(**create_params)
+        return self.client.chat.completions.create(**create_params)  # 确保 ZhipuAI 的调用方式正确
 
     def handle_function_result(self, result, debug) -> Result:
         match result:
@@ -145,6 +144,8 @@ class Swarm:
         debug: bool = False,
         max_turns: int = float("inf"),
         execute_tools: bool = True,
+        models: dict = None,  # 添加多个模型定义参数
+        selected_model: str = None,  # 添加选择的模型参数
     ):
         active_agent = agent
         context_variables = copy.deepcopy(context_variables)
@@ -175,6 +176,8 @@ class Swarm:
                 model_override=model_override,
                 stream=True,
                 debug=debug,
+                models=models,  # 传递多个模型定义
+                selected_model=selected_model,  # 传递选择的模型
             )
 
             yield {"delim": "start"}
@@ -238,6 +241,8 @@ class Swarm:
         debug: bool = False,
         max_turns: int = float("inf"),
         execute_tools: bool = True,
+        models: dict = None,  # 添加多个模型定义参数
+        selected_model: str = None,  # 添加选择的模型参数
     ) -> Response:
         if stream:
             return self.run_and_stream(
@@ -248,6 +253,8 @@ class Swarm:
                 debug=debug,
                 max_turns=max_turns,
                 execute_tools=execute_tools,
+                models=models,  # 传递多个模型定义
+                selected_model=selected_model,  # 传递选择的模型
             )
         active_agent = agent
         context_variables = copy.deepcopy(context_variables)
@@ -264,6 +271,8 @@ class Swarm:
                 model_override=model_override,
                 stream=stream,
                 debug=debug,
+                models=models,  # 传递多个模型定义
+                selected_model=selected_model,  # 传递选择的模型
             )
             message = completion.choices[0].message
             debug_print(debug, "Received completion:", message)
