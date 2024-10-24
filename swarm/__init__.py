@@ -1,17 +1,11 @@
+# __init__.py
+
 from typing import Optional
 from .core import Swarm as DefaultSwarm
 from .core_zhipu import Swarm as ZhipuSwarm
-from .types import (
-    Agent,
-    AgentFunction,
-    ChatCompletionMessage,
-    ChatCompletionMessageToolCall,
-    Function,
-    Response,
-    Result
-)
+from .types import *
 
-# Define available client types and their configurations
+# 修改配置以支持跨厂商对话
 CLIENT_CONFIG = {
     "Zhipu": {
         "client_class": ZhipuSwarm,
@@ -23,48 +17,44 @@ CLIENT_CONFIG = {
             "default": "glm-4"
         }
     },
-    "Default": {
+    "OpenAI": {  # 改名为更明确的 OpenAI
         "client_class": DefaultSwarm,
         "models": {
-            "options": ["default-model-1", "default-model-2", "default-model-3"],
-            "default": "default-model-1"
+            "options": ["gpt-3.5-turbo", "gpt-4", "gpt-4-32k"],
+            "default": "gpt-3.5-turbo"
         }
     }
 }
 
+# 添加存储不同厂商客户端的字典
+_clients = {}
 
-def create_swarm(client_type: str = "Default", api_key: Optional[str] = None) -> DefaultSwarm | ZhipuSwarm:
+
+def create_swarm(client_type: str = "OpenAI", api_key: Optional[str] = None) -> DefaultSwarm | ZhipuSwarm:
     """
     Factory method to create a Swarm instance based on the specified client type.
+    Stores the client instance for reuse.
     """
     if client_type not in CLIENT_CONFIG:
         raise ValueError(f"Unsupported client type: {client_type}. "
                          f"Supported types are: {list(CLIENT_CONFIG.keys())}")
 
-    client_class = CLIENT_CONFIG[client_type]["client_class"]
-    return client_class(api_key=api_key)
+    if api_key:
+        client_class = CLIENT_CONFIG[client_type]["client_class"]
+        _clients[client_type] = client_class(api_key=api_key)
+
+    return _clients.get(client_type)
 
 
-def get_model_config(client_type: str = "Default"):
-    """
-    Get the model configuration for a specific client type.
-    """
+def get_client(client_type: str) -> Optional[DefaultSwarm | ZhipuSwarm]:
+    """Get stored client instance for a specific type."""
+    return _clients.get(client_type)
+
+
+def get_model_config(client_type: str = "OpenAI"):
+    """Get the model configuration for a specific client type."""
     if client_type not in CLIENT_CONFIG:
         raise ValueError(f"Unsupported client type: {client_type}. "
                          f"Supported types are: {list(CLIENT_CONFIG.keys())}")
 
     return CLIENT_CONFIG[client_type]["models"]
-
-
-# Re-export types for convenience
-__all__ = [
-    'create_swarm',
-    'get_model_config',
-    'Agent',
-    'AgentFunction',
-    'ChatCompletionMessage',
-    'ChatCompletionMessageToolCall',
-    'Function',
-    'Response',
-    'Result'
-]
